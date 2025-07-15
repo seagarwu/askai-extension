@@ -81,7 +81,7 @@ function createPopup(contextText, position) {
     modelSelect.value = "gemini-2.0-flash";
     popup.appendChild(modelSelect);
 
-    const defaultQuestion = "Please translate to Traditional Chinese.";
+    const defaultQuestion = "請翻譯成繁體中文。";
 
     // Create a container for the input and button
     var inputContainer = document.createElement("div");
@@ -119,7 +119,7 @@ function createPopup(contextText, position) {
       var selectedModel = document.getElementById("modelSelect").value;
       let questionText = textField;
       if (!textField) {
-        questionText = "Please translate to Traditional Chinese.";
+        questionText = "請翻譯成繁體中文。";
       }
       const queryText = contextText + "\n" + questionText;
       

@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "Ask AI",
     "version": "1.0",
-    "description": "Unlock instant insights! Ask AI models (ChatGPT, Gemini) about selected text, the entire webpage, or continue conversations seamlessly, all without leaving your current page.",
+    "description": "Unlock instant insights! Ask AI models (ChatGPT, Gemini) about selected text, webpage, or continue conversations seamlessly.",
     "action": {
         "default_popup": "main.html"
     },
