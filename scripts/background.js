@@ -1,10 +1,13 @@
 console.log("[Background] Script started.");
 
-function getGPTResponse(apiKey, message, model, sendResponse) {
+function getGPTResponse(apiKey, message, model, conversationHistory, sendResponse) {
+    let messages = conversationHistory || [];
+    messages.push({ "role": "user", "content": message });
+
     let data = {
-      "model": model,
-      "messages": [{"role": "user", "content": message}],
-      "max_tokens": 1000
+        "model": model,
+        "messages": messages,
+        "max_tokens": 1000
     }
     let requestBody = JSON.stringify(data);
     fetch("https://api.openai.com/v1/chat/completions", {
@@ -19,15 +22,19 @@ function getGPTResponse(apiKey, message, model, sendResponse) {
       if (res.choices) {
         result = res.choices[0].message.content;
       }
-      sendResponse({ result: result });
+      messages.push({ "role": "assistant", "content": result });
+      sendResponse({ result: result, conversationHistory: messages });
     }).catch(err => {
       console.log("error: " + err);
     })
 }
 
-function getGeminiResponse(apiKey, message, model, sendResponse) {
+function getGeminiResponse(apiKey, message, model, conversationHistory, sendResponse) {
+  let contents = conversationHistory || [];
+  contents.push({ "role": "user", "parts": [{ "text": message }] });
+
   let data = {
-    "contents": [{"parts": [{"text": message}]}]
+    "contents": contents
   }
   let requestBody = JSON.stringify(data);
   fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
@@ -41,7 +48,8 @@ function getGeminiResponse(apiKey, message, model, sendResponse) {
     if (res.candidates && res.candidates[0] && res.candidates[0].content && res.candidates[0].content.parts && res.candidates[0].content.parts[0]) {
       result = res.candidates[0].content.parts[0].text;
     }
-    sendResponse({ result: result });
+    contents.push({ "role": "model", "parts": [{ "text": result }] });
+    sendResponse({ result: result, conversationHistory: contents });
   }).catch(err => {
     console.log("error: " + err);
   })
@@ -54,11 +62,12 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       const localGeminiApiKey = storageRes.key["geminiApiKey"];
       const selection = request.selection;
       const model = request.model;
+      const conversationHistory = request.conversationHistory || [];
 
       if (model.startsWith("gpt")) {
-        getGPTResponse(localApiKey, selection, model, sendResponse);
+        getGPTResponse(localApiKey, selection, model, conversationHistory, sendResponse);
       } else if (model.startsWith("gemini")) {
-        getGeminiResponse(localGeminiApiKey, selection, model, sendResponse);
+        getGeminiResponse(localGeminiApiKey, selection, model, conversationHistory, sendResponse);
       }
     });
   } else if (request.type === "createPopup") {

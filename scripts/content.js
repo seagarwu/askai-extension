@@ -15,6 +15,7 @@ document.addEventListener('contextmenu', function(event) {
 });
 
 function createPopup(contextText, position) {
+    let conversationHistory = [];
     // Add basic CSS for Markdown lists
     const style = document.createElement('style');
     style.textContent = `
@@ -29,6 +30,10 @@ function createPopup(contextText, position) {
         }
         #myPopup li {
             margin-bottom: 5px;
+        }
+        .chat-label {
+            font-size: 1.1em;
+            color: #CC5500; /* 更深的橘色 */
         }
     `;
     document.head.appendChild(style);
@@ -115,22 +120,61 @@ function createPopup(contextText, position) {
 
     button.onclick = function() {
       button.textContent = "Loading...";
-      var textField = document.getElementById("myTextField").value;
-      var selectedModel = document.getElementById("modelSelect").value;
-      let questionText = textField;
-      if (!textField) {
-        questionText = "請翻譯成繁體中文。";
+      var selectedModel = modelSelect.value;
+      let questionText = textField.value;
+      if (!questionText) {
+        questionText = defaultQuestion;
       }
-      const queryText = contextText + "\n" + questionText;
+
+      // The query sent to the API should only be the new question,
+      // unless it's the first message, in which case it includes the initial context.
+      const queryToSend = conversationHistory.length === 0 ? (contextText + "\n" + questionText) : questionText;
+
+      // Add a separator for follow-up questions
+      if (conversationHistory.length > 0) {
+        const separator = document.createElement('hr');
+        separator.style.marginTop = '15px';
+        separator.style.marginBottom = '15px';
+        separator.style.border = '0';
+        separator.style.borderTop = '1px solid #eee';
+        resultText.appendChild(separator);
+      }
+
+      // 1. Display user's question
+      const userMessageDiv = document.createElement('div');
+      userMessageDiv.innerHTML = `<p><b class="chat-label">You:</b></p><p>${questionText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
+      resultText.appendChild(userMessageDiv);
+
+      // 2. Display loading state for AI
+      const aiMessageDiv = document.createElement('div');
+      aiMessageDiv.innerHTML = `<p><b class="chat-label">AI (${selectedModel}):</b></p><p><i>Thinking...</i></p>`;
+      resultText.appendChild(aiMessageDiv);
       
-      chrome.runtime.sendMessage({ type: "getResponse", selection: queryText, model: selectedModel })
+      // Scroll to the bottom
+      resultText.scrollTop = resultText.scrollHeight;
+
+      // Clear the input field
+      textField.value = "";
+      textField.placeholder = "Ask a follow-up question...";
+
+      // Disable model selection after the first message
+      if (conversationHistory.length === 0) {
+        modelSelect.disabled = true;
+      }
+
+      chrome.runtime.sendMessage({ type: "getResponse", selection: queryToSend, model: selectedModel, conversationHistory: conversationHistory })
         .then((response) => {
+          conversationHistory = response.conversationHistory;
           button.textContent = "Send";
+          
+          // 3. Update AI's message with the actual response
           if (window.marked) {
-            resultText.innerHTML = window.marked.parse(response.result, { breaks: true });
+            aiMessageDiv.innerHTML = `<p><b class="chat-label">AI (${selectedModel}):</b></p>` + window.marked.parse(response.result, { breaks: true });
           } else {
-            resultText.textContent = response.result;
+            aiMessageDiv.innerHTML = `<p><b class="chat-label">AI (${selectedModel}):</b></p><p>${response.result.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
           }
+          // Scroll to the bottom again
+          resultText.scrollTop = resultText.scrollHeight;
         })
         .catch(error => {
             button.textContent = "Send";
@@ -193,8 +237,14 @@ function createPopup(contextText, position) {
 if (!window.escListenerAdded) {
     document.addEventListener('keydown', function(event) {
         if (event.key === "Escape") {
-            if (document.activeElement && document.activeElement.classList.contains('askai-popup')) {
-                document.activeElement.remove();
+            const activeElement = document.activeElement;
+            let currentPopup = activeElement;
+            while (currentPopup) {
+                if (currentPopup.classList && currentPopup.classList.contains('askai-popup')) {
+                    currentPopup.remove();
+                    break;
+                }
+                currentPopup = currentPopup.parentElement;
             }
         }
     });
