@@ -1,0 +1,38 @@
+{
+    "manifest_version": 3,
+    "name": "Ask AI",
+    "version": "1.0",
+    "description": "Unlock instant insights! Ask AI models (ChatGPT, Gemini) about selected text, the entire webpage, or continue conversations seamlessly, all without leaving your current page.",
+    "action": {
+        "default_popup": "main.html"
+    },
+    "icons": {
+        "16": "images/icon.png",
+        "32": "images/icon.png",
+        "48": "images/icon.png",
+        "128": "images/icon.png"
+    },
+    "background": {
+        "service_worker": "scripts/background.js"
+    },
+    "content_scripts": [
+        {
+            "js": ["scripts/content.js"],
+            "matches": [
+                "https://*/*"
+            ]
+        }
+    ],
+    "permissions": [
+        "storage",
+        "activeTab",
+        "tabs",
+        "scripting",
+        "contextMenus"
+    ],
+    "externally_connectable": {
+        "matches": [
+            "https://*/*"
+        ]
+    }
+}

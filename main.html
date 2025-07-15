@@ -1,0 +1,20 @@
+<html>
+  <head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+  </head>
+  <body style="width: 510px; padding: 1%;">
+    <form id="apiKeyForm" name="apiKeyForm" method="post" action="">
+      <h3>Ask AI</h3>
+      <div class="mb-3">
+        <label for="apiKey" class="form-label">OpenAI API Key:</label>
+        <input type="password" name="apiKey" class="form-control" id="apikey">
+      </div>
+      <div class="mb-3">
+        <label for="geminiApiKey" class="form-label">Gemini API Key:</label>
+        <input type="password" name="geminiApiKey" class="form-control" id="geminiApiKey">
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Save</button>
+      <script src="scripts/popup.js"></script>
+    </form>
+  </body>
+</html>
