@@ -1,7 +1,5 @@
 This project is forked from [QuicklyGPT](https://github.com/zealotjin/quicklygpt-extension?tab=readme-ov-file).
 
-This project has evolved significantly through an **AI-assisted, prompt-driven development approach**, transforming into a highly intuitive and powerful AI interaction tool. We've focused on delivering a seamless and efficient user experience, introducing numerous innovations beyond the original.
-
 The following key enhancements and modifications have been implemented:
 
 - **Revolutionary User Interaction & Context Management:**
