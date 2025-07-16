@@ -94,15 +94,24 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
+  console.log("[Background] Context menu clicked. MenuItemId:", info.menuItemId);
   if (info.menuItemId === "askAI") {
+    console.log("[Background] Executing script in tab:", tab.id);
     chrome.scripting.executeScript({
       target: {tabId: tab.id},
       files: ['scripts/marked.min.js', 'scripts/content.js']
     }, () => {
-      if (info.selectionText) {
-        chrome.tabs.sendMessage(tab.id, {type: "showPopup", selectionText: info.selectionText});
-      } else if (info.pageUrl) {
-        chrome.tabs.sendMessage(tab.id, {type: "showPopup", pageUrl: info.pageUrl});
+      if (chrome.runtime.lastError) {
+        console.error("[Background] Error executing script:", chrome.runtime.lastError.message);
+      } else {
+        console.log("[Background] Script executed. Sending message to content script.");
+        setTimeout(() => {
+          if (info.selectionText) {
+            chrome.tabs.sendMessage(tab.id, {type: "showPopup", selectionText: info.selectionText});
+          } else if (info.pageUrl) {
+            chrome.tabs.sendMessage(tab.id, {type: "showPopup", pageUrl: info.pageUrl});
+          }
+        }, 100); // Add a small delay to allow content script to set up listener
       }
     });
   }

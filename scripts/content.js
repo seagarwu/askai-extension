@@ -1,3 +1,4 @@
+console.log("[Content] content.js started.");
 if (!window.hasAskAIInjected) {
     window.hasAskAIInjected = true;
 
@@ -155,11 +156,13 @@ function createPopup(contextText, position) {
 
       // 1. Display user's question
       const userMessageDiv = document.createElement('div');
+      userMessageDiv.classList.add('message-item', 'user-message-item');
       userMessageDiv.innerHTML = `<p><b class="chat-label">You:</b></p><p>${questionText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
       resultText.appendChild(userMessageDiv);
 
       // 2. Display loading state for AI
       const aiMessageDiv = document.createElement('div');
+      aiMessageDiv.classList.add('message-item');
       aiMessageDiv.innerHTML = `<p><b class="chat-label">AI (${selectedModel}):</b></p><p><i>Thinking...</i></p>`;
       resultText.appendChild(aiMessageDiv);
       
@@ -185,6 +188,10 @@ function createPopup(contextText, position) {
             aiMessageDiv.innerHTML = `<p><b class="chat-label">AI (${selectedModel}):</b></p>` + window.marked.parse(response.result, { breaks: true });
           } else {
             aiMessageDiv.innerHTML = `<p><b class="chat-label">AI (${selectedModel}):</b></p><p>${response.result.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
+          }
+          // Show navigation buttons after the first response
+          if (conversationHistory.length >= 2) { // Check if it's the first message (after user's question and AI's response)
+            navButtonsContainer.style.display = "flex";
           }
           // Scroll to the bottom again
           resultText.scrollTop = resultText.scrollHeight;
@@ -256,6 +263,104 @@ function createPopup(contextText, position) {
     document.addEventListener('mouseup', () => {
         isDragging = false;
     });
+
+    // Create navigation buttons container
+    var navButtonsContainer = document.createElement("div");
+    navButtonsContainer.style.position = "absolute";
+    navButtonsContainer.style.bottom = "60px"; // Adjusted position
+    navButtonsContainer.style.right = "10px";
+    navButtonsContainer.style.zIndex = "10001"; // 確保在最上層
+    navButtonsContainer.style.display = "none"; // Initially hidden
+    navButtonsContainer.style.flexDirection = "column";
+    navButtonsContainer.style.gap = "5px";
+    navButtonsContainer.style.opacity = "0.7"; // Added opacity
+
+    // Create scroll to top button
+    var scrollTopButton = document.createElement("button");
+    var scrollTopImg = document.createElement("img");
+    scrollTopImg.src = chrome.runtime.getURL("images/top.svg");
+    scrollTopImg.style.width = "20px"; // Adjust size as needed
+    scrollTopImg.style.height = "20px"; // Adjust size as needed
+    scrollTopButton.appendChild(scrollTopImg);
+    scrollTopButton.style.padding = "5px 8px";
+    scrollTopButton.style.cursor = "pointer";
+    navButtonsContainer.appendChild(scrollTopButton);
+
+    // Create previous message button
+    var prevButton = document.createElement("button");
+    var prevImg = document.createElement("img");
+    prevImg.src = chrome.runtime.getURL("images/prev.svg");
+    prevImg.style.width = "20px"; // Adjust size as needed
+    prevImg.style.height = "20px"; // Adjust size as needed
+    prevButton.appendChild(prevImg);
+    prevButton.style.padding = "5px 8px";
+    prevButton.style.cursor = "pointer";
+    navButtonsContainer.appendChild(prevButton);
+
+    // Create next message button
+    var nextButton = document.createElement("button");
+    var nextImg = document.createElement("img");
+    nextImg.src = chrome.runtime.getURL("images/next.svg");
+    nextImg.style.width = "20px"; // Adjust size as needed
+    nextImg.style.height = "20px"; // Adjust size as needed
+    nextButton.appendChild(nextImg);
+    nextButton.style.padding = "5px 8px";
+    nextButton.style.cursor = "pointer";
+    navButtonsContainer.appendChild(nextButton);
+
+    // Create scroll to bottom button
+    var scrollBottomButton = document.createElement("button");
+    var bottomImg = document.createElement("img");
+    bottomImg.src = chrome.runtime.getURL("images/bottom.svg");
+    bottomImg.style.width = "20px"; // Adjust size as needed
+    bottomImg.style.height = "20px"; // Adjust size as needed
+    scrollBottomButton.appendChild(bottomImg);
+    scrollBottomButton.style.padding = "5px 8px";
+    scrollBottomButton.style.cursor = "pointer";
+    navButtonsContainer.appendChild(scrollBottomButton);
+
+    popup.appendChild(navButtonsContainer);
+
+    // Navigation button logic
+    scrollTopButton.onclick = () => {
+        scrollableBody.scrollTop = 0;
+    };
+
+    scrollBottomButton.onclick = () => {
+        scrollableBody.scrollTop = scrollableBody.scrollHeight;
+    };
+
+    prevButton.onclick = () => {
+        const userMessageItems = scrollableBody.querySelectorAll('.user-message-item');
+        let currentScrollTop = scrollableBody.scrollTop;
+        let targetScrollTop = 0;
+
+        // Find the first user message item that is above the current scroll position
+        for (let i = userMessageItems.length - 1; i >= 0; i--) {
+            const item = userMessageItems[i];
+            if (item.offsetTop < currentScrollTop) {
+                targetScrollTop = item.offsetTop;
+                break;
+            }
+        }
+        scrollableBody.scrollTop = targetScrollTop;
+    };
+
+    nextButton.onclick = () => {
+        const userMessageItems = scrollableBody.querySelectorAll('.user-message-item');
+        let currentScrollTop = scrollableBody.scrollTop;
+        let targetScrollTop = scrollableBody.scrollHeight; // Default to bottom if no next found
+
+        // Find the first user message item that is below the current view
+        for (let i = 0; i < userMessageItems.length; i++) {
+            const item = userMessageItems[i];
+            if (item.offsetTop > currentScrollTop + scrollableBody.clientHeight - 1) { // -1 to account for partial visibility
+                targetScrollTop = item.offsetTop;
+                break;
+            }
+        }
+        scrollableBody.scrollTop = targetScrollTop;
+    };
 
     return popup;
 }

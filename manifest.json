@@ -34,5 +34,11 @@
         "matches": [
             "https://*/*"
         ]
-    }
+    },
+    "web_accessible_resources": [
+        {
+            "resources": ["images/*.svg"],
+            "matches": ["<all_urls>"]
+        }
+    ]
 }
