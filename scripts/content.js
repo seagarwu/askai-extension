@@ -44,14 +44,23 @@ function createPopup(contextText, position) {
     popup.style.left = position.left + "px";
     popup.style.backgroundColor = "#fff";
     popup.style.border = "1px solid #000";
-    popup.style.padding = "10px";
+    popup.style.padding = "0"; // 移除 padding
     popup.style.color = "#000";
     popup.style.maxHeight = "600px";
     popup.style.maxWidth = "800px";
-    popup.style.overflow = "auto";
+    popup.style.overflow = "hidden"; // 設置為 hidden
     popup.style.zIndex = "9999";
     popup.style.resize = "both";
+    popup.style.display = "flex"; // 新增 flex 佈局
+    popup.style.flexDirection = "column"; // 設置為垂直方向
+    popup.style.boxSizing = "border-box"; // 確保 padding 和 border 不影響寬高
     
+    // Create a scrollable body for context, model select, and chat history
+    var scrollableBody = document.createElement("div");
+    scrollableBody.style.flexGrow = "1";
+    scrollableBody.style.overflowY = "auto";
+    scrollableBody.style.padding = "10px"; // Apply padding here
+
     // Create a Popup div
     var contextDisplay = document.createElement("div");
     if (contextText.startsWith("http")) {
@@ -64,7 +73,7 @@ function createPopup(contextText, position) {
         contextDisplay.textContent = contextText;
       }
     }
-    popup.appendChild(contextDisplay);
+    scrollableBody.appendChild(contextDisplay); // Append to scrollableBody
     
     popup.classList.add("askai-popup");
 
@@ -84,7 +93,7 @@ function createPopup(contextText, position) {
     option3.textContent = "Gemini 2.0 Flash";
     modelSelect.appendChild(option3);
     modelSelect.value = "gemini-2.0-flash";
-    popup.appendChild(modelSelect);
+    scrollableBody.appendChild(modelSelect);
 
     const defaultQuestion = "請翻譯成繁體中文。";
 
@@ -93,6 +102,8 @@ function createPopup(contextText, position) {
     inputContainer.style.display = "flex";
     inputContainer.style.width = "100%";
     inputContainer.style.gap = "5px";
+    inputContainer.style.padding = "10px"; // 將原先 popup 的 padding 轉移到這裡
+    inputContainer.style.borderTop = "1px solid #eee"; // 可選：增加一個上邊框
 
     // Create a text input
     var textField = document.createElement("input");
@@ -106,8 +117,6 @@ function createPopup(contextText, position) {
     var button = document.createElement("button");
     button.textContent = "Send";
     inputContainer.appendChild(button);
-    popup.appendChild(inputContainer);
-
     textField.addEventListener("keydown", function(event) {
         if (event.key === "Enter") {
             event.preventDefault();
@@ -116,7 +125,11 @@ function createPopup(contextText, position) {
     });
 
     var resultText = document.createElement("div");
-    popup.appendChild(resultText);
+    // Removed flex-grow, overflowY, padding as they are now on scrollableBody
+    scrollableBody.appendChild(resultText);
+
+    popup.appendChild(scrollableBody); // Append scrollableBody here
+    popup.appendChild(inputContainer); // Then append inputContainer
 
     button.onclick = function() {
       button.textContent = "Loading...";
@@ -188,6 +201,9 @@ function createPopup(contextText, position) {
     header.style.cursor = "move";
     header.style.backgroundColor = "#f1f1f1";
     header.style.borderBottom = "1px solid #ccc";
+    header.style.position = "sticky";
+    header.style.top = "0";
+    header.style.zIndex = "10000"; // 確保它在其他內容之上
     header.textContent = "Ask AI";
     popup.insertBefore(header, popup.firstChild);
 
@@ -212,6 +228,16 @@ function createPopup(contextText, position) {
     let isDragging = false;
     let offsetX = 0;
     let offsetY = 0;
+
+    // Allow dragging with Ctrl + click anywhere on the popup
+    popup.addEventListener('mousedown', (e) => {
+        if (e.ctrlKey) {
+            isDragging = true;
+            offsetX = e.clientX - popup.offsetLeft;
+            offsetY = e.clientY - popup.offsetTop;
+            e.preventDefault(); // Prevent default behavior like text selection
+        }
+    });
 
     header.addEventListener('mousedown', (e) => {
         isDragging = true;
