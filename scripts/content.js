@@ -268,7 +268,7 @@ function createPopup(contextText, position) {
     var navButtonsContainer = document.createElement("div");
     navButtonsContainer.style.position = "absolute";
     navButtonsContainer.style.bottom = "60px"; // Adjusted position
-    navButtonsContainer.style.right = "10px";
+    navButtonsContainer.style.right = "25px";
     navButtonsContainer.style.zIndex = "10001"; // 確保在最上層
     navButtonsContainer.style.display = "none"; // Initially hidden
     navButtonsContainer.style.flexDirection = "column";
