@@ -28,3 +28,6 @@ The following enhancements and modifications have been implemented:
 
 - **Improved Usability:**
     - Automatically focuses the input field upon opening the Ask AI window via right-click, allowing for immediate text input without additional mouse clicks.
+    - **Sticky Header for Easy Dragging:** The popup's header now remains visible and draggable, even when scrolling through long content.
+    - **Flexible Window Positioning:** Drag the popup from anywhere by holding `Ctrl` and clicking, or use the dedicated header.
+    - **Persistent Input Area:** The input field and send button are now fixed at the bottom, ensuring they are always accessible for continuous conversation, with the chat history scrolling independently above.
