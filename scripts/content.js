@@ -43,7 +43,7 @@ function createPopup(contextText, position) {
     popup.style.position = "fixed";
     popup.style.top = position.top + "px";
     popup.style.left = position.left + "px";
-    popup.style.backgroundColor = "#fff";
+    popup.style.backgroundColor = "#fafafa";
     popup.style.border = "1px solid #000";
     popup.style.padding = "0"; // 移除 padding
     popup.style.color = "#000";
@@ -94,6 +94,8 @@ function createPopup(contextText, position) {
     option3.textContent = "Gemini 2.0 Flash";
     modelSelect.appendChild(option3);
     modelSelect.value = "gemini-2.0-flash";
+    modelSelect.style.backgroundColor = "#ffffff"; // 固定背景顏色為白色
+    modelSelect.style.color = "#000000"; // 固定字體顏色為黑色
     scrollableBody.appendChild(modelSelect);
 
     const defaultQuestion = "請翻譯成繁體中文。";
@@ -112,6 +114,8 @@ function createPopup(contextText, position) {
     textField.id = "myTextField";
     textField.placeholder = defaultQuestion;
     textField.style.flexGrow = "1";
+    textField.style.backgroundColor = "#ffffff"; // 固定背景顏色為白色
+    textField.style.color = "#000000"; // 固定字體顏色為黑色
     inputContainer.appendChild(textField);
 
     // Create a button to search
