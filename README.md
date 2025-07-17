@@ -15,6 +15,6 @@ The following key enhancements and modifications have been implemented:
 - **Optimized User Interface & Experience:**
     - **Persistent Input Area:** The input field and send button are now fixed at the bottom of the window, ensuring they are always accessible for continuous conversation, with the chat history scrolling independently above.
     - **Smart Conversation Navigation:** Navigate long conversations with ease using dedicated "Top", "Prev", "Next", and "Bottom" buttons. "Prev" and "Next" precisely locate and display user questions ("You:") at the top of the view.
-    - **Streamlined Input & Readability:** Input fields clear automatically with helpful placeholders. Visual separators and enhanced labels improve readability of conversation turns.
+    - **Streamlined Input & Readability:** Input fields clear automatically with helpful placeholders. Visual separators and enhanced labels improve readability of conversation turns. **A new input history dropdown is available, toggling its visibility with a click on the input field for quick access to previous queries.**
     - **Auto-Focus for Immediate Input:** The input field automatically gains focus upon window opening, allowing for immediate text input.
-    - **Subtle UI Elements:** Navigation buttons feature a subtle transparency for a less intrusive appearance, and dynamically appear only after the first AI response.
+    - **Subtle UI Elements:** Navigation buttons feature a subtle transparency for a less intrusive appearance, and dynamically appear only after the first AI response. **The Ask AI popup now maintains a minimum width for improved usability, and the model selection dropdown has been styled with fixed background and font colors for better consistency.**

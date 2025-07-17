@@ -36,6 +36,35 @@ function createPopup(contextText, position) {
             font-size: 1.1em;
             color: #CC5500; /* 更深的橘色 */
         }
+        .history-dropdown {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 100000;
+            border: 1px solid #ddd;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .history-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .history-item:hover {
+            background-color: #f1f1f1;
+        }
+        .delete-history-item {
+            color: #aaa;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .delete-history-item:hover {
+            color: #000;
+        }
     `;
     document.head.appendChild(style);
 
@@ -49,6 +78,7 @@ function createPopup(contextText, position) {
     popup.style.color = "#000";
     popup.style.maxHeight = "600px";
     popup.style.maxWidth = "800px";
+    popup.style.minWidth = "350px"; // Ensure a minimum width for usability
     popup.style.overflow = "hidden"; // 設置為 hidden
     popup.style.zIndex = "9999";
     popup.style.resize = "both";
@@ -102,6 +132,7 @@ function createPopup(contextText, position) {
 
     // Create a container for the input and button
     var inputContainer = document.createElement("div");
+    inputContainer.style.position = "relative"; // For positioning the dropdown
     inputContainer.style.display = "flex";
     inputContainer.style.width = "100%";
     inputContainer.style.gap = "5px";
@@ -116,7 +147,13 @@ function createPopup(contextText, position) {
     textField.style.flexGrow = "1";
     textField.style.backgroundColor = "#ffffff"; // 固定背景顏色為白色
     textField.style.color = "#000000"; // 固定字體顏色為黑色
+    textField.autocomplete = "off";
     inputContainer.appendChild(textField);
+
+    // Create the custom history dropdown
+    const historyDropdown = document.createElement('div');
+    historyDropdown.className = 'history-dropdown';
+    inputContainer.appendChild(historyDropdown);
 
     // Create a button to search
     var button = document.createElement("button");
@@ -127,6 +164,81 @@ function createPopup(contextText, position) {
             event.preventDefault();
             button.click();
         }
+    });
+
+    textField.addEventListener('click', (event) => {
+        event.stopPropagation(); // Prevent any parent click listeners from interfering
+        if (historyDropdown.style.display === 'block') {
+            historyDropdown.style.display = 'none';
+            popup.style.overflow = 'hidden';
+        } else {
+            populateHistoryDropdown();
+        }
+    });
+
+    function populateHistoryDropdown(filter = '') {
+        chrome.storage.local.get(['inputHistory'], (result) => {
+            const history = result.inputHistory || [];
+            historyDropdown.innerHTML = '';
+            const filteredHistory = history.filter(item => item.toLowerCase().includes(filter.toLowerCase()));
+
+            if (filteredHistory.length > 0) {
+                popup.style.overflow = 'visible'; // Allow dropdown to show
+                historyDropdown.style.display = 'block';
+                // Position the dropdown just below the text field
+                historyDropdown.style.top = `${textField.offsetTop + textField.offsetHeight}px`;
+                historyDropdown.style.left = `${textField.offsetLeft}px`;
+                historyDropdown.style.width = `${textField.offsetWidth}px`;
+            } else {
+                historyDropdown.style.display = 'none';
+                popup.style.overflow = 'hidden'; // Restore clipping
+                return;
+            }
+
+            filteredHistory.forEach(itemText => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'history-item';
+
+                const textSpan = document.createElement('span');
+                textSpan.textContent = itemText;
+                textSpan.style.flexGrow = '1';
+                textSpan.addEventListener('mousedown', (e) => {
+                    e.preventDefault(); // Prevent blur event on textfield
+                    textField.value = itemText;
+                    historyDropdown.style.display = 'none';
+                    popup.style.overflow = 'hidden'; // Restore clipping
+                });
+
+                const deleteBtn = document.createElement('span');
+                deleteBtn.className = 'delete-history-item';
+                deleteBtn.textContent = 'x';
+                deleteBtn.addEventListener('mousedown', (e) => {
+                    e.preventDefault(); // Prevent blur and other events
+                    e.stopPropagation();
+                    // Remove from storage
+                    const newHistory = history.filter(h => h !== itemText);
+                    chrome.storage.local.set({ inputHistory: newHistory }, () => {
+                        // Remove from DOM
+                        populateHistoryDropdown(textField.value);
+                    });
+                });
+
+                itemDiv.appendChild(textSpan);
+                itemDiv.appendChild(deleteBtn);
+                historyDropdown.appendChild(itemDiv);
+            });
+        });
+    }
+
+    
+
+    textField.addEventListener('blur', (event) => {
+        // As per user request, blur event should not hide the dropdown.
+        // The dropdown is now toggled only by clicking the input field.
+    });
+
+    textField.addEventListener('input', () => {
+        populateHistoryDropdown(textField.value);
     });
 
     var resultText = document.createElement("div");
@@ -142,6 +254,22 @@ function createPopup(contextText, position) {
       let questionText = textField.value;
       if (!questionText) {
         questionText = defaultQuestion;
+      }
+
+      // Save the question to history
+      if (questionText) {
+        chrome.storage.local.get(['inputHistory'], (result) => {
+            let history = result.inputHistory || [];
+            // Remove if already exists to move it to the top
+            history = history.filter(item => item !== questionText);
+            // Add to the front
+            history.unshift(questionText);
+            // Keep the last 50 entries
+            if (history.length > 50) {
+                history = history.slice(0, 50);
+            }
+            chrome.storage.local.set({ inputHistory: history });
+        });
       }
 
       // The query sent to the API should only be the new question,
