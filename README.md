@@ -32,7 +32,7 @@
 ## 🚀 Installation
 
 ### Chrome Web Store  
- 🔗 [Install from Chrome Web Store](httpshttps://chromewebstore.google.com/detail/ask-ai/ojednlpijidkbneinclpholkihfdalbm) 
+ 🔗 [Install from Chrome Web Store](https://chromewebstore.google.com/detail/ask-ai/ojednlpijidkbneinclpholkihfdalbm) 
 
 ### Developer mode
 ```text
