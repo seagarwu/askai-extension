@@ -120,11 +120,11 @@ function createPopup(contextText, position) {
     option2.textContent = "GPT-3.5 Turbo 16k";
     modelSelect.appendChild(option2);
     var option3 = document.createElement("option");
-    option3.value = "gemini-2.0-flash";
-    option3.textContent = "Gemini 2.0 Flash";
+    option3.value = "gemini-2.5-flash";
+    option3.textContent = "Gemini 2.5 Flash";
     modelSelect.appendChild(option3);
-    modelSelect.value = "gemini-2.0-flash";
-    modelSelect.style.backgroundColor = "#ffffff"; // 固定背景顏色為白色
+    modelSelect.value = "gemini-2.5-flash";
+    modelSelect.style.backgroundColor = "#3b2828ff"; // 固定背景顏色為白色
     modelSelect.style.color = "#000000"; // 固定字體顏色為黑色
     scrollableBody.appendChild(modelSelect);
 
