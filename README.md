@@ -14,7 +14,7 @@
   - Selected text → Ask AI  
   - No selection → Ask AI with current page URL  
   - Select text *inside* an Ask AI window to start a related thread.
-- **Multi-model switcher** – ChatGPT Turbo / Turbo-16k / Gemini Flash … choose per query.
+- **Multi-model switcher** – ChatGPT Turbo / Turbo-16k / Gemini 2.5 Flash / Gemini 2.5 Flash Lite … choose per query.
 
 ### 2. Conversation & Window Management
 - **Independent windows** – each popup keeps its own continuous chat across tabs.  

@@ -69,15 +69,20 @@ function createPopup(contextText, position) {
     document.head.appendChild(style);
 
     var popup = document.createElement("div");
+    popup.style.width = (window.innerWidth / 2) + "px"; // Initial width for centering calculation
+    popup.style.height = "450px"; // Initial height for centering calculation
     popup.style.position = "fixed";
-    popup.style.top = position.top + "px";
-    popup.style.left = position.left + "px";
+    // Calculate center position
+    const centerX = (window.innerWidth - parseInt(popup.style.width)) / 2;
+    const centerY = (window.innerHeight - parseInt(popup.style.height)) / 2;
+    popup.style.top = centerY + "px";
+    popup.style.left = centerX + "px";
     popup.style.backgroundColor = "#fafafa";
     popup.style.border = "1px solid #000";
     popup.style.padding = "0"; // 移除 padding
     popup.style.color = "#000";
     popup.style.maxHeight = "600px";
-    popup.style.maxWidth = "800px";
+    popup.style.maxWidth = window.innerWidth + "px";
     popup.style.minWidth = "350px"; // Ensure a minimum width for usability
     popup.style.overflow = "hidden"; // 設置為 hidden
     popup.style.zIndex = "9999";
