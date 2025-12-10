@@ -123,6 +123,10 @@ function createPopup(contextText, position) {
     option3.value = "gemini-2.5-flash";
     option3.textContent = "Gemini 2.5 Flash";
     modelSelect.appendChild(option3);
+    var option4 = document.createElement("option");
+    option4.value = "gemini-2.5-flash-lite";
+    option4.textContent = "Gemini 2.5 Flash Lite";
+    modelSelect.appendChild(option4);
     modelSelect.value = "gemini-2.5-flash";
     modelSelect.style.backgroundColor = "#3b2828ff"; // 固定背景顏色為白色
     modelSelect.style.color = "#000000"; // 固定字體顏色為黑色
