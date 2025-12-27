@@ -95,7 +95,7 @@ function createPopup(contextText, position) {
     // Create a scrollable body for context, model select, and chat history
     var scrollableBody = document.createElement("div");
     scrollableBody.style.flexGrow = "1";
-    scrollableBody.style.overflowY = "auto";
+    scrollableBody.style.overflow = "auto";
     scrollableBody.style.padding = "10px"; // Apply padding here
 
     // Create a Popup div
@@ -181,6 +181,7 @@ function createPopup(contextText, position) {
         if (historyDropdown.style.display === 'block') {
             historyDropdown.style.display = 'none';
             popup.style.overflow = 'hidden';
+            if (rightPanel) rightPanel.style.overflow = 'hidden'; // Restore clipping
         } else {
             populateHistoryDropdown();
         }
@@ -194,6 +195,7 @@ function createPopup(contextText, position) {
 
             if (filteredHistory.length > 0) {
                 popup.style.overflow = 'visible'; // Allow dropdown to show
+                if (rightPanel) rightPanel.style.overflow = 'visible'; // Also allow right panel to show overflow
                 historyDropdown.style.display = 'block';
                 // Position the dropdown just below the text field
                 historyDropdown.style.top = `${textField.offsetTop + textField.offsetHeight}px`;
@@ -202,6 +204,7 @@ function createPopup(contextText, position) {
             } else {
                 historyDropdown.style.display = 'none';
                 popup.style.overflow = 'hidden'; // Restore clipping
+                if (rightPanel) rightPanel.style.overflow = 'hidden'; // Restore clipping
                 return;
             }
 
@@ -217,6 +220,7 @@ function createPopup(contextText, position) {
                     textField.value = itemText;
                     historyDropdown.style.display = 'none';
                     popup.style.overflow = 'hidden'; // Restore clipping
+                    if (rightPanel) rightPanel.style.overflow = 'hidden'; // Restore clipping
                 });
 
                 const deleteBtn = document.createElement('span');
@@ -472,7 +476,7 @@ function createPopup(contextText, position) {
     rightPanel.style.flexGrow = '1';
     rightPanel.style.display = 'flex';
     rightPanel.style.flexDirection = 'column';
-    rightPanel.style.overflow = 'visible'; // The right panel itself shouldn't scroll
+    rightPanel.style.overflow = 'hidden'; // The right panel itself shouldn't scroll
 
     // Append existing elements to the right panel
     rightPanel.appendChild(scrollableBody);
