@@ -15,7 +15,12 @@ document.addEventListener('contextmenu', function(event) {
     window.lastRightClickPosition = { x: event.clientX, y: event.clientY };
 });
 
-function createPopup(contextText, position) {
+function createPopup(pageUrl, selectionText, position) {
+    // Combine context for AI and for saving, to avoid changing storage structure.
+    let contextText = selectionText ? `URL: ${pageUrl}
+
+${selectionText}` : pageUrl;
+
     let conversationHistory = [];
     let currentConversationId = null;
     // Add basic CSS for Markdown lists
@@ -100,17 +105,41 @@ function createPopup(contextText, position) {
 
     // Create a Popup div
     var contextDisplay = document.createElement("div");
-    if (contextText.startsWith("http")) {
-      contextDisplay.textContent = "URL: " + contextText;
-    } else {
-      
-      if (window.marked) {
-        contextDisplay.innerHTML = window.marked.parse(contextText, { breaks: true });
-      } else {
-        contextDisplay.textContent = contextText;
-      }
-    }
     scrollableBody.appendChild(contextDisplay); // Append to scrollableBody
+
+    // --- New Helper Function for Rendering Context ---
+    function renderContextArea(url, selection) {
+        contextDisplay.innerHTML = ''; // Clear previous content
+
+        if (!url) return;
+
+        const urlLink = document.createElement('a');
+        urlLink.href = url;
+        urlLink.textContent = url;
+        urlLink.target = '_blank';
+        urlLink.style.display = 'block';
+        urlLink.style.wordBreak = 'break-all';
+        contextDisplay.appendChild(urlLink);
+
+        if (selection) {
+            const separator = document.createElement('hr');
+            separator.style.margin = '10px 0';
+            contextDisplay.appendChild(separator);
+
+            const selectionDiv = document.createElement('div');
+            if (window.marked) {
+                selectionDiv.innerHTML = window.marked.parse(selection, { breaks: true });
+            } else {
+                selectionDiv.textContent = selection;
+            }
+            contextDisplay.appendChild(selectionDiv);
+        }
+    }
+    // --- End of Helper Function ---
+
+    // Initial render on popup creation
+    renderContextArea(pageUrl, selectionText);
+
     
     popup.classList.add("askai-popup");
 
@@ -329,12 +358,14 @@ function createPopup(contextText, position) {
                 titleSpan.style.flexGrow = '1';
 
                 const deleteBtn = document.createElement('span');
-                deleteBtn.textContent = '✕';
                 deleteBtn.style.padding = '2px 5px';
                 deleteBtn.style.borderRadius = '3px';
                 deleteBtn.style.marginLeft = '10px';
                 deleteBtn.style.color = '#999';
                 deleteBtn.style.flexShrink = '0';
+                deleteBtn.style.display = 'flex';
+                deleteBtn.style.alignItems = 'center';
+                deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
 
                 // Hover effect for delete button
                 deleteBtn.addEventListener('mouseenter', () => { deleteBtn.style.color = '#000'; deleteBtn.style.backgroundColor = '#e0e0e0'; });
@@ -413,24 +444,35 @@ function createPopup(contextText, position) {
                             return;
                         }
 
+                        // 1. Update state
                         currentConversationId = clickedLog.id;
                         conversationHistory = clickedLog.history;
                         contextText = clickedLog.context;
                         modelSelect.value = clickedLog.model;
                         modelSelect.disabled = true;
 
+                        // 2. Clear and re-render context area
                         resultText.innerHTML = '';
-                        if (contextText.startsWith("http")) {
-                            contextDisplay.innerHTML = "URL: " + contextText;
+                        let loadedUrl, loadedSelection;
+                        const urlPrefix = "URL: ";
+                        if (contextText.startsWith(urlPrefix)) {
+                            const parts = contextText.split('\n\n');
+                            loadedUrl = parts[0].substring(urlPrefix.length);
+                            loadedSelection = parts.slice(1).join('\n\n');
                         } else {
-                            contextDisplay.innerHTML = window.marked.parse(contextText, { breaks: true });
+                            // Fallback for old format or URL-only context
+                            loadedUrl = contextText;
+                            loadedSelection = undefined;
                         }
-                        
+                        renderContextArea(loadedUrl, loadedSelection);
+
+                        // 3. Re-render chat history bubbles (THE PREVIOUSLY MISSING PART)
                         conversationHistory.forEach((message, index) => {
                             if (message.role === 'user') {
                                 const userMessageDiv = document.createElement('div');
                                 userMessageDiv.classList.add('message-item', 'user-message-item');
-                                const userContent = (index === 0 && contextText) ? message.parts[0].text.replace(contextText + "\n", "") : message.parts[0].text;
+                                // The first user message contains the context, so we strip it for a cleaner display.
+                                const userContent = (index === 0 && loadedSelection) ? message.parts[0].text.replace(contextText + "\n", "") : message.parts[0].text;
                                 userMessageDiv.innerHTML = `<p><b class="chat-label">You:</b></p><p>${userContent.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
                                 resultText.appendChild(userMessageDiv);
                             } else if (message.role === 'model' || message.role === 'assistant') {
@@ -454,6 +496,7 @@ function createPopup(contextText, position) {
                             }
                         });
 
+                        // 4. Update UI elements
                         textField.value = "";
                         textField.placeholder = "Ask a follow-up question...";
                         navButtonsContainer.style.display = "flex";
@@ -477,6 +520,52 @@ function createPopup(contextText, position) {
     rightPanel.style.display = 'flex';
     rightPanel.style.flexDirection = 'column';
     rightPanel.style.overflow = 'hidden'; // The right panel itself shouldn't scroll
+
+    // --- Sidebar Toggle Logic ---
+    const rightPanelHeader = document.createElement('div');
+    rightPanelHeader.style.display = 'flex';
+    rightPanelHeader.style.alignItems = 'center';
+    rightPanelHeader.style.padding = '4px 8px';
+    rightPanelHeader.style.borderBottom = '1px solid #ccc';
+    rightPanelHeader.style.backgroundColor = '#f1f1f1';
+
+    const toggleButton = document.createElement('button');
+    toggleButton.style.padding = '2px 6px';
+    toggleButton.style.marginRight = '10px';
+    toggleButton.style.cursor = 'pointer';
+    
+    let isSidebarVisible = true; // Default state
+
+    const updateSidebarVisibility = (visible, isInitialLoad = false) => {
+        isSidebarVisible = visible;
+        if (visible) {
+            leftPanel.style.display = 'block';
+            resizer.style.display = 'block';
+            toggleButton.textContent = '«';
+        } else {
+            leftPanel.style.display = 'none';
+            resizer.style.display = 'none';
+            toggleButton.textContent = '»';
+        }
+        if (!isInitialLoad) {
+            chrome.storage.local.set({ sidebarVisible: visible });
+        }
+    };
+
+    toggleButton.addEventListener('click', () => {
+        updateSidebarVisibility(!isSidebarVisible);
+    });
+
+    // Load initial state
+    chrome.storage.local.get(['sidebarVisible'], (result) => {
+        // Default to true if not set
+        const savedState = result.sidebarVisible === undefined ? true : result.sidebarVisible;
+        updateSidebarVisibility(savedState, true);
+    });
+
+    rightPanelHeader.appendChild(toggleButton);
+    rightPanel.appendChild(rightPanelHeader);
+    // --- End of Sidebar Toggle Logic ---
 
     // Append existing elements to the right panel
     rightPanel.appendChild(scrollableBody);
@@ -669,7 +758,7 @@ function createPopup(contextText, position) {
     header.style.position = "sticky";
     header.style.top = "0";
     header.style.zIndex = "10000"; // 確保它在其他內容之上
-    header.textContent = "Ask AI";
+    header.textContent = ""; // Remove title to save space
     popup.insertBefore(header, popup.firstChild);
 
     var closeButton = document.createElement("span");
@@ -842,17 +931,14 @@ if (!window.escListenerAdded) {
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if (request.type === "showPopup") {
-    let contextText;
     const position = { top: lastRightClickPosition.y, left: lastRightClickPosition.x };
+    const pageUrl = request.pageUrl;
+    // Use the passed selectionText, but trim it. Fallback to undefined.
+    const selectionText = request.selectionText ? request.selectionText.trim() : undefined;
 
-    if (request.selectionText) {
-      contextText = window.getSelection().toString().trim();
-    } else if (request.pageUrl) {
-      contextText = request.pageUrl;
-    }
-
-    if (contextText) {
-      const popup = createPopup(contextText, position);
+    // Proceed if we have at least a URL
+    if (pageUrl) {
+      const popup = createPopup(pageUrl, selectionText, position);
       document.body.appendChild(popup);
       setTimeout(() => {
         const textField = popup.querySelector('#myTextField');

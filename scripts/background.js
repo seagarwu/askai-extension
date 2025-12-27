@@ -104,11 +104,12 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       } else {
         console.log("[Background] Script executed. Sending message to content script.");
         setTimeout(() => {
-          if (info.selectionText) {
-            chrome.tabs.sendMessage(tab.id, {type: "showPopup", selectionText: info.selectionText});
-          } else if (info.pageUrl) {
-            chrome.tabs.sendMessage(tab.id, {type: "showPopup", pageUrl: info.pageUrl});
-          }
+          // Always send both pageUrl and selectionText
+          chrome.tabs.sendMessage(tab.id, {
+            type: "showPopup",
+            selectionText: info.selectionText, // This will be undefined if no text is selected
+            pageUrl: info.pageUrl
+          });
         }, 100); // Add a small delay to allow content script to set up listener
       }
     });
