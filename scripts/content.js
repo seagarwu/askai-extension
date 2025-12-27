@@ -17,6 +17,7 @@ document.addEventListener('contextmenu', function(event) {
 
 function createPopup(contextText, position) {
     let conversationHistory = [];
+    let currentConversationId = null;
     // Add basic CSS for Markdown lists
     const style = document.createElement('style');
     style.textContent = `
@@ -88,7 +89,7 @@ function createPopup(contextText, position) {
     popup.style.zIndex = "9999";
     popup.style.resize = "both";
     popup.style.display = "flex"; // 新增 flex 佈局
-    popup.style.flexDirection = "column"; // 設置為垂直方向
+    popup.style.flexDirection = "row"; // 設置為水平方向
     popup.style.boxSizing = "border-box"; // 確保 padding 和 border 不影響寬高
     
     // Create a scrollable body for context, model select, and chat history
@@ -257,6 +258,270 @@ function createPopup(contextText, position) {
     popup.appendChild(scrollableBody); // Append scrollableBody here
     popup.appendChild(inputContainer); // Then append inputContainer
 
+    // Create the two-column layout
+    const leftPanel = document.createElement('div');
+    leftPanel.style.width = '250px'; // Width for the history list
+    leftPanel.style.borderRight = '1px solid #ccc';
+    leftPanel.style.backgroundColor = '#f7f7f7';
+    leftPanel.style.overflowY = 'auto';
+    leftPanel.style.flexShrink = '0'; // Prevent sidebar from shrinking
+    leftPanel.style.padding = '10px';
+    leftPanel.innerHTML = ''; // Clear placeholder
+
+    // --- Start of new display logic ---
+    function renderHistoryList() {
+        // --- Start of New Chat Button logic ---
+        leftPanel.innerHTML = ''; // Clear everything first
+        const newChatButton = document.createElement('button');
+        newChatButton.textContent = '＋ New Chat';
+        newChatButton.style.width = '100%';
+        newChatButton.style.padding = '10px';
+        newChatButton.style.marginBottom = '10px';
+        newChatButton.style.border = '1px solid #ccc';
+        newChatButton.style.backgroundColor = '#f0f0f0';
+        newChatButton.style.cursor = 'pointer';
+
+        newChatButton.addEventListener('click', () => {
+            currentConversationId = null;
+            conversationHistory = [];
+            contextText = '';
+            resultText.innerHTML = '';
+            contextDisplay.innerHTML = '<p><i>New chat session. Ask anything.</i></p>';
+            modelSelect.disabled = false;
+            textField.value = '';
+            textField.placeholder = 'Ask a new question...';
+            navButtonsContainer.style.display = 'none';
+        });
+        leftPanel.appendChild(newChatButton);
+        // --- End of New Chat Button logic ---
+
+        chrome.storage.local.get(['conversationLogs'], (result) => {
+            const logs = result.conversationLogs || [];
+
+            if (logs.length === 0) {
+                const noHistory = document.createElement('div');
+                noHistory.textContent = 'No saved conversations.';
+                noHistory.style.padding = '8px 10px';
+                noHistory.style.color = '#888';
+                leftPanel.appendChild(noHistory);
+                return;
+            }
+
+            logs.forEach(log => {
+                const historyItem = document.createElement('div');
+                historyItem.style.padding = '8px 10px';
+                historyItem.style.borderBottom = '1px solid #e0e0e0';
+                historyItem.style.cursor = 'pointer';
+                historyItem.setAttribute('data-conversation-id', log.id);
+                historyItem.style.display = 'flex';
+                historyItem.style.justifyContent = 'space-between';
+                historyItem.style.alignItems = 'center';
+
+                const titleSpan = document.createElement('span');
+                titleSpan.textContent = log.title;
+                titleSpan.style.whiteSpace = 'nowrap';
+                titleSpan.style.overflow = 'hidden';
+                titleSpan.style.textOverflow = 'ellipsis';
+                titleSpan.style.flexGrow = '1';
+
+                const deleteBtn = document.createElement('span');
+                deleteBtn.textContent = '✕';
+                deleteBtn.style.padding = '2px 5px';
+                deleteBtn.style.borderRadius = '3px';
+                deleteBtn.style.marginLeft = '10px';
+                deleteBtn.style.color = '#999';
+                deleteBtn.style.flexShrink = '0';
+
+                // Hover effect for delete button
+                deleteBtn.addEventListener('mouseenter', () => { deleteBtn.style.color = '#000'; deleteBtn.style.backgroundColor = '#e0e0e0'; });
+                deleteBtn.addEventListener('mouseleave', () => { deleteBtn.style.color = '#999'; deleteBtn.style.backgroundColor = 'transparent'; });
+
+                // --- Delete Logic ---
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const idToDelete = log.id;
+                    chrome.storage.local.get(['conversationLogs'], (res) => {
+                        const updatedLogs = (res.conversationLogs || []).filter(l => l.id !== idToDelete);
+                        chrome.storage.local.set({ conversationLogs: updatedLogs }, () => {
+                            if (idToDelete === currentConversationId) {
+                                newChatButton.click(); // Reset the UI if the active chat is deleted
+                            }
+                            renderHistoryList(); // Refresh the list
+                        });
+                    });
+                });
+
+                // --- Edit Title Logic ---
+                titleSpan.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = titleSpan.textContent;
+                    input.style.width = '100%';
+                    input.style.border = '1px solid #999';
+                    input.style.padding = '0px 2px';
+                    input.style.margin = '0';
+                    input.style.font = 'inherit';
+                    input.style.backgroundColor = '#fff';
+
+                    historyItem.replaceChild(input, titleSpan);
+                    input.focus();
+                    input.select();
+
+                    const saveTitle = () => {
+                        const newTitle = input.value.trim();
+                        if (newTitle && newTitle !== log.title) {
+                            chrome.storage.local.get(['conversationLogs'], (res) => {
+                                const currentLogs = res.conversationLogs || [];
+                                const logIndex = currentLogs.findIndex(l => l.id === log.id);
+                                if (logIndex !== -1) {
+                                    currentLogs[logIndex].title = newTitle;
+                                    chrome.storage.local.set({ conversationLogs: currentLogs }, () => {
+                                        renderHistoryList(); // Refresh the whole list
+                                    });
+                                }
+                            });
+                        } else {
+                            historyItem.replaceChild(titleSpan, input);
+                        }
+                    };
+
+                    input.addEventListener('blur', saveTitle);
+                    input.addEventListener('keydown', (ev) => {
+                        if (ev.key === 'Enter') {
+                            saveTitle();
+                        } else if (ev.key === 'Escape') {
+                            historyItem.replaceChild(titleSpan, input);
+                        }
+                    });
+                });
+
+                historyItem.appendChild(titleSpan);
+                historyItem.appendChild(deleteBtn);
+
+                // --- Click-to-Load Logic ---
+                historyItem.addEventListener('click', () => {
+                    chrome.storage.local.get(['conversationLogs'], (result) => {
+                        const logs = result.conversationLogs || [];
+                        const clickedLog = logs.find(l => l.id === log.id);
+                        if (!clickedLog) {
+                            console.error("Could not find clicked conversation.");
+                            return;
+                        }
+
+                        currentConversationId = clickedLog.id;
+                        conversationHistory = clickedLog.history;
+                        contextText = clickedLog.context;
+                        modelSelect.value = clickedLog.model;
+                        modelSelect.disabled = true;
+
+                        resultText.innerHTML = '';
+                        if (contextText.startsWith("http")) {
+                            contextDisplay.innerHTML = "URL: " + contextText;
+                        } else {
+                            contextDisplay.innerHTML = window.marked.parse(contextText, { breaks: true });
+                        }
+                        
+                        conversationHistory.forEach((message, index) => {
+                            if (message.role === 'user') {
+                                const userMessageDiv = document.createElement('div');
+                                userMessageDiv.classList.add('message-item', 'user-message-item');
+                                const userContent = (index === 0 && contextText) ? message.parts[0].text.replace(contextText + "\n", "") : message.parts[0].text;
+                                userMessageDiv.innerHTML = `<p><b class="chat-label">You:</b></p><p>${userContent.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
+                                resultText.appendChild(userMessageDiv);
+                            } else if (message.role === 'model' || message.role === 'assistant') {
+                                const aiMessageDiv = document.createElement('div');
+                                aiMessageDiv.classList.add('message-item');
+                                const aiContent = message.parts[0].text;
+                                if (window.marked) {
+                                    aiMessageDiv.innerHTML = `<p><b class="chat-label">AI (${clickedLog.model}):</b></p>` + window.marked.parse(aiContent, { breaks: true });
+                                } else {
+                                    aiMessageDiv.innerHTML = `<p><b class="chat-label">AI (${clickedLog.model}):</b></p><p>${aiContent.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
+                                }
+                                resultText.appendChild(aiMessageDiv);
+                            }
+                            if (index < conversationHistory.length - 1) {
+                                const separator = document.createElement('hr');
+                                separator.style.marginTop = '15px';
+                                separator.style.marginBottom = '15px';
+                                separator.style.border = '0';
+                                separator.style.borderTop = '1px solid #eee';
+                                resultText.appendChild(separator);
+                            }
+                        });
+
+                        textField.value = "";
+                        textField.placeholder = "Ask a follow-up question...";
+                        navButtonsContainer.style.display = "flex";
+                        scrollableBody.scrollTop = scrollableBody.scrollHeight;
+                    });
+                });
+
+                historyItem.addEventListener('mouseenter', () => { historyItem.style.backgroundColor = '#e9e9e9'; });
+                historyItem.addEventListener('mouseleave', () => { historyItem.style.backgroundColor = 'transparent'; });
+
+                leftPanel.appendChild(historyItem);
+            });
+        });
+    }
+
+    renderHistoryList();
+    // --- End of new display logic ---
+
+    const rightPanel = document.createElement('div');
+    rightPanel.style.flexGrow = '1';
+    rightPanel.style.display = 'flex';
+    rightPanel.style.flexDirection = 'column';
+    rightPanel.style.overflow = 'visible'; // The right panel itself shouldn't scroll
+
+    // Append existing elements to the right panel
+    rightPanel.appendChild(scrollableBody);
+    rightPanel.appendChild(inputContainer);
+
+    // Append the new panels to the main popup
+    popup.appendChild(leftPanel);
+
+    // --- Resizer Logic ---
+    const resizer = document.createElement('div');
+    resizer.style.width = '5px';
+    resizer.style.cursor = 'col-resize';
+    resizer.style.backgroundColor = 'transparent'; // It's an invisible handle
+    resizer.style.flexShrink = '0';
+    popup.appendChild(resizer);
+
+    popup.appendChild(rightPanel);
+
+    // Load saved width and apply it
+    chrome.storage.local.get(['sidebarWidth'], (result) => {
+        if (result.sidebarWidth) {
+            leftPanel.style.width = result.sidebarWidth;
+        }
+    });
+
+    const dragMouseDown = (e) => {
+        e.preventDefault();
+        document.addEventListener('mouseup', closeDragElement, { once: true }); // Use 'once' for automatic cleanup
+        document.addEventListener('mousemove', elementDrag);
+    };
+
+    const elementDrag = (e) => {
+        e.preventDefault();
+        const newWidth = e.clientX - popup.getBoundingClientRect().left;
+        // Add some constraints to prevent panels from becoming too small
+        if (newWidth > 150 && newWidth < popup.clientWidth - 200) { 
+            leftPanel.style.width = newWidth + 'px';
+        }
+    };
+
+    const closeDragElement = () => {
+        document.removeEventListener('mousemove', elementDrag);
+        // Save the new width to local storage
+        chrome.storage.local.set({ sidebarWidth: leftPanel.style.width });
+    };
+
+    resizer.addEventListener('mousedown', dragMouseDown);
+    // --- End of Resizer Logic ---
+
     button.onclick = function() {
       button.textContent = "Loading...";
       var selectedModel = modelSelect.value;
@@ -282,8 +547,8 @@ function createPopup(contextText, position) {
       }
 
       // The query sent to the API should only be the new question,
-      // unless it's the first message, in which case it includes the initial context.
-      const queryToSend = conversationHistory.length === 0 ? (contextText + "\n" + questionText) : questionText;
+      // unless it's the first message, in which case it includes the initial context (if it exists).
+      const queryToSend = (conversationHistory.length === 0 && contextText) ? (contextText + "\n" + questionText) : questionText;
 
       // Add a separator for follow-up questions
       if (conversationHistory.length > 0) {
@@ -324,6 +589,54 @@ function createPopup(contextText, position) {
           conversationHistory = response.conversationHistory;
           button.textContent = "Send";
           
+          // --- Start of new save logic ---
+          chrome.storage.local.get(['conversationLogs'], (result) => {
+              let logs = result.conversationLogs || [];
+              
+              if (currentConversationId === null) {
+                  // This is a new conversation
+                  const newId = Date.now();
+                  currentConversationId = newId;
+                  const titleText = contextText || questionText;
+                  const title = titleText.length > 50 ? titleText.substring(0, 50) + '...' : titleText;
+                  
+                  const newLog = {
+                      id: newId,
+                      title: title,
+                      context: contextText,
+                      model: selectedModel,
+                      timestamp: new Date().toISOString(),
+                      history: conversationHistory
+                  };
+                  logs.unshift(newLog); // Add to the beginning
+                  console.log('[Content] New conversation saved. ID:', newId);
+              } else {
+                  // This is an existing conversation
+                  const logIndex = logs.findIndex(log => log.id === currentConversationId);
+                  if (logIndex !== -1) {
+                      logs[logIndex].history = conversationHistory;
+                      logs[logIndex].timestamp = new Date().toISOString();
+                      // Move the updated log to the top
+                      const updatedLog = logs.splice(logIndex, 1)[0];
+                      logs.unshift(updatedLog);
+                      console.log('[Content] Conversation updated. ID:', currentConversationId);
+                  } else {
+                      console.error('[Content] Could not find conversation to update with ID:', currentConversationId);
+                      return; 
+                  }
+              }
+
+              // Keep the last 50 conversations
+              if (logs.length > 50) {
+                  logs = logs.slice(0, 50);
+              }
+
+              chrome.storage.local.set({ conversationLogs: logs }, () => {
+                  renderHistoryList(); // Refresh the list in the sidebar
+              });
+          });
+          // --- End of new save logic ---
+
           // 3. Update AI's message with the actual response
           if (window.marked) {
             aiMessageDiv.innerHTML = `<p><b class="chat-label">AI (${selectedModel}):</b></p>` + window.marked.parse(response.result, { breaks: true });
