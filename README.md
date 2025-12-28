@@ -11,14 +11,15 @@
 ### 1. User Interaction & Context Management
 - **Context-aware activation** – opens only from the right-click menu, keeping your browsing flow uninterrupted until you call it.  
 - **Flexible querying**  
-  - Selected text → Ask AI  
-  - No selection → Ask AI with current page URL  
+  - Selected text → Ask AI (the highlight and its source URL are bundled into the prompt)  
+  - No selection → Ask AI with the current page URL  
   - Select text *inside* an Ask AI window to start a related thread.
-- **Multi-model switcher** – ChatGPT Turbo / Turbo-16k / Gemini 2.5 Flash / Gemini 2.5 Flash Lite … choose per query.
+- **Multi-model switcher** – ChatGPT Turbo / Turbo-16k / Gemini 2.5 Flash Lite … choose per query.
 
 ### 2. Conversation & Window Management
 - **Independent windows** – each popup keeps its own continuous chat across tabs.  
 - **Multi-window control** – open many windows; close with ❌ or <kbd>Esc</kbd>.  
+- **Conversation history sidebar** – double-click a title to rename it, use the inline delete icon to prune old threads, and reopen any chat directly inside the Ask AI window.  
 - **Drag-and-move** – drag the title bar, or press <kbd>Ctrl</kbd> + <kbd>Left Click</kbd> anywhere.
 
 ### 3. UI & Navigation
@@ -41,10 +42,18 @@ chrome://extensions → Enable Developer mode → Load unpacked → select folde
 ```
 
 ## 💡 Usage Tips
-| Action                     | Shortcut                                |
-| -------------------------- | --------------------------------------- |
-| Close active Ask AI window | <kbd>Esc</kbd>                          |
-| Move window anywhere       | <kbd>Ctrl</kbd> + <kbd>Left Click</kbd> |
+| Action | Shortcut |
+| --- | --- |
+| Launch Ask AI window on the active tab | Win/Linux: <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Y</kbd><br>macOS: <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>Y</kbd> |
+| Close the floating window | <kbd>Esc</kbd> or click the top-right ❌ |
+| Move window anywhere | Drag the title bar, or press <kbd>Ctrl</kbd> + <kbd>Left Click</kbd> anywhere |
 
- ## 📚 Acknowledgements
+## 🆕 Recent Updates
+- Added a global `Ctrl/Cmd + Shift + Y` shortcut so you can summon the floating window without touching the mouse.
+- Selected text queries now include the source page URL so prompts always carry reliable context.
+- Expanded the chat history sidebar with double-click-to-rename titles plus inline delete controls for more complete conversation management.
+- Default model switched to `gemini-2.5-flash-lite` to keep responses fast without sacrificing quality.
+- Refined the floating window chrome: header dragging is fully supported and the close button now lives on the right-hand side for easier muscle memory.
+
+## 📚 Acknowledgements
 Based on QuicklyGPT by [JG Lee](https://github.com/zealotjin/quicklygpt-extension) – reused under the MIT License with permission.
