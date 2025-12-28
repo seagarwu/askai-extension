@@ -1,5 +1,45 @@
 console.log("[Background] Script started.");
 
+function injectAskAIScripts(tabId, callback) {
+  chrome.scripting.executeScript({
+    target: { tabId },
+    files: ['scripts/marked.min.js', 'scripts/content.js']
+  }, () => {
+    if (chrome.runtime.lastError) {
+      console.error("[Background] Error executing script:", chrome.runtime.lastError.message);
+      return;
+    }
+    if (typeof callback === "function") {
+      callback();
+    }
+  });
+}
+
+function dispatchAskAIPopup(tabId, selectionText, pageUrl) {
+  setTimeout(() => {
+    chrome.tabs.sendMessage(tabId, {
+      type: "showPopup",
+      selectionText,
+      pageUrl
+    });
+  }, 100);
+}
+
+function fetchSelectionText(tabId, callback) {
+  chrome.scripting.executeScript({
+    target: { tabId },
+    func: () => window.getSelection ? window.getSelection().toString() : ""
+  }, (selectionResults) => {
+    if (chrome.runtime.lastError) {
+      console.error("[Background] Error reading selection:", chrome.runtime.lastError.message);
+      callback("");
+      return;
+    }
+    const selectionText = selectionResults && selectionResults[0] ? selectionResults[0].result : "";
+    callback(selectionText);
+  });
+}
+
 function getGPTResponse(apiKey, message, model, conversationHistory, sendResponse) {
     let messages = conversationHistory || [];
     messages.push({ "role": "user", "content": message });
@@ -95,25 +135,29 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   console.log("[Background] Context menu clicked. MenuItemId:", info.menuItemId);
   if (info.menuItemId === "askAI") {
     console.log("[Background] Executing script in tab:", tab.id);
-    chrome.scripting.executeScript({
-      target: {tabId: tab.id},
-      files: ['scripts/marked.min.js', 'scripts/content.js']
-    }, () => {
-      if (chrome.runtime.lastError) {
-        console.error("[Background] Error executing script:", chrome.runtime.lastError.message);
-      } else {
-        console.log("[Background] Script executed. Sending message to content script.");
-        setTimeout(() => {
-          // Always send both pageUrl and selectionText
-          chrome.tabs.sendMessage(tab.id, {
-            type: "showPopup",
-            selectionText: info.selectionText, // This will be undefined if no text is selected
-            pageUrl: info.pageUrl
-          });
-        }, 100); // Add a small delay to allow content script to set up listener
-      }
+    injectAskAIScripts(tab.id, () => {
+      console.log("[Background] Script executed. Sending message to content script.");
+      dispatchAskAIPopup(tab.id, info.selectionText, info.pageUrl);
     });
   }
+});
+
+chrome.commands.onCommand.addListener((command) => {
+  if (command !== "open-ask-ai-popup") {
+    return;
+  }
+  chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
+    const activeTab = tabs && tabs[0];
+    if (!activeTab || !activeTab.id) {
+      console.warn("[Background] No active tab available for Ask AI command.");
+      return;
+    }
+    injectAskAIScripts(activeTab.id, () => {
+      fetchSelectionText(activeTab.id, (selectionText) => {
+        dispatchAskAIPopup(activeTab.id, selectionText, activeTab.url);
+      });
+    });
+  });
 });
 
 console.log("[Background] Loaded script");

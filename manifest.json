@@ -4,7 +4,24 @@
     "version": "1.0",
     "description": "Unlock instant insights! Ask AI models (ChatGPT, Gemini) about selected text, webpage, or continue conversations seamlessly.",
     "action": {
-        "default_popup": "main.html"
+        "default_popup": "main.html",
+        "default_title": "Ask AI"
+    },
+    "commands": {
+        "_execute_action": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+A",
+                "mac": "Command+Shift+A"
+            },
+            "description": "Open Ask AI popup"
+        },
+        "open-ask-ai-popup": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+Y",
+                "mac": "Command+Shift+Y"
+            },
+            "description": "Open Ask AI window"
+        }
     },
     "icons": {
         "16": "images/icon.png",
