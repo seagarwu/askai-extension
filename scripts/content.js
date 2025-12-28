@@ -525,13 +525,19 @@ ${selectionText}` : pageUrl;
     const rightPanelHeader = document.createElement('div');
     rightPanelHeader.style.display = 'flex';
     rightPanelHeader.style.alignItems = 'center';
+    rightPanelHeader.style.justifyContent = 'space-between';
     rightPanelHeader.style.padding = '4px 8px';
     rightPanelHeader.style.borderBottom = '1px solid #ccc';
     rightPanelHeader.style.backgroundColor = '#f1f1f1';
+    rightPanelHeader.style.cursor = 'move';
+
+    const headerControls = document.createElement('div');
+    headerControls.style.display = 'flex';
+    headerControls.style.alignItems = 'center';
+    headerControls.style.gap = '8px';
 
     const toggleButton = document.createElement('button');
     toggleButton.style.padding = '2px 6px';
-    toggleButton.style.marginRight = '10px';
     toggleButton.style.cursor = 'pointer';
     
     let isSidebarVisible = true; // Default state
@@ -563,8 +569,29 @@ ${selectionText}` : pageUrl;
         updateSidebarVisibility(savedState, true);
     });
 
-    rightPanelHeader.appendChild(toggleButton);
+    headerControls.appendChild(toggleButton);
+    rightPanelHeader.appendChild(headerControls);
     rightPanel.appendChild(rightPanelHeader);
+
+    const closeButton = document.createElement('span');
+    closeButton.textContent = '×';
+    closeButton.style.fontSize = '16px';
+    closeButton.style.lineHeight = '1';
+    closeButton.style.cursor = 'pointer';
+    closeButton.style.fontWeight = 'bold';
+    rightPanelHeader.appendChild(closeButton);
+    popup.tabIndex = -1;
+
+    popup.addEventListener('mousedown', () => {
+        popup.focus();
+    });
+
+    closeButton.onclick = function() {
+        if (window.activeAskAIPopup === popup) {
+            window.activeAskAIPopup = null;
+        }
+        popup.remove();
+    };
     // --- End of Sidebar Toggle Logic ---
 
     // Append existing elements to the right panel
@@ -750,35 +777,6 @@ ${selectionText}` : pageUrl;
         });
     }
 
-    var header = document.createElement("div");
-    header.style.padding = "5px";
-    header.style.cursor = "move";
-    header.style.backgroundColor = "#f1f1f1";
-    header.style.borderBottom = "1px solid #ccc";
-    header.style.position = "sticky";
-    header.style.top = "0";
-    header.style.zIndex = "10000"; // 確保它在其他內容之上
-    header.textContent = ""; // Remove title to save space
-    popup.insertBefore(header, popup.firstChild);
-
-    var closeButton = document.createElement("span");
-    closeButton.textContent = "x";
-    closeButton.style.float = "right";
-    closeButton.style.cursor = "pointer";
-    popup.tabIndex = -1;
-
-    popup.addEventListener('mousedown', () => {
-        popup.focus();
-    });
-
-    closeButton.onclick = function() {
-        if (window.activeAskAIPopup === popup) {
-        window.activeAskAIPopup = null;
-        }
-        popup.remove();
-    };
-    header.appendChild(closeButton);
-
     let isDragging = false;
     let offsetX = 0;
     let offsetY = 0;
@@ -793,7 +791,11 @@ ${selectionText}` : pageUrl;
         }
     });
 
-    header.addEventListener('mousedown', (e) => {
+    rightPanelHeader.addEventListener('mousedown', (e) => {
+        const target = e.target;
+        if (target === toggleButton || toggleButton.contains(target) || target === closeButton) {
+            return; // keep clicks on controls functional
+        }
         isDragging = true;
         offsetX = e.clientX - popup.offsetLeft;
         offsetY = e.clientY - popup.offsetTop;
