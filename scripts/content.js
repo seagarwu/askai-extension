@@ -301,6 +301,25 @@ ${selectionText}` : pageUrl;
     leftPanel.style.padding = '10px';
     leftPanel.innerHTML = ''; // Clear placeholder
 
+    const ACTIVE_HISTORY_BG = '#e3ecff';
+    const ACTIVE_HISTORY_BORDER = '#5b74ff';
+
+    function setHistoryItemActiveState(element, isActive) {
+        if (!element) return;
+        element.dataset.active = isActive ? 'true' : 'false';
+        element.style.backgroundColor = isActive ? ACTIVE_HISTORY_BG : 'transparent';
+        element.style.borderLeft = isActive ? `3px solid ${ACTIVE_HISTORY_BORDER}` : '3px solid transparent';
+    }
+
+    function refreshActiveHistoryHighlight() {
+        const historyItems = leftPanel.querySelectorAll('.history-item');
+        historyItems.forEach((item) => {
+            const itemId = item.getAttribute('data-conversation-id');
+            const isActive = currentConversationId !== null && String(itemId) === String(currentConversationId);
+            setHistoryItemActiveState(item, isActive);
+        });
+    }
+
     // --- Start of new display logic ---
     function renderHistoryList() {
         // --- Start of New Chat Button logic ---
@@ -324,6 +343,7 @@ ${selectionText}` : pageUrl;
             textField.value = '';
             textField.placeholder = 'Ask a new question...';
             navButtonsContainer.style.display = 'none';
+            refreshActiveHistoryHighlight();
         });
         leftPanel.appendChild(newChatButton);
         // --- End of New Chat Button logic ---
@@ -342,6 +362,7 @@ ${selectionText}` : pageUrl;
 
             logs.forEach(log => {
                 const historyItem = document.createElement('div');
+                historyItem.classList.add('history-item');
                 historyItem.style.padding = '8px 10px';
                 historyItem.style.borderBottom = '1px solid #e0e0e0';
                 historyItem.style.cursor = 'pointer';
@@ -349,6 +370,7 @@ ${selectionText}` : pageUrl;
                 historyItem.style.display = 'flex';
                 historyItem.style.justifyContent = 'space-between';
                 historyItem.style.alignItems = 'center';
+                historyItem.style.borderLeft = '3px solid transparent';
 
                 const titleSpan = document.createElement('span');
                 titleSpan.textContent = log.title;
@@ -450,6 +472,7 @@ ${selectionText}` : pageUrl;
                         contextText = clickedLog.context;
                         modelSelect.value = clickedLog.model;
                         modelSelect.disabled = true;
+                        refreshActiveHistoryHighlight();
 
                         // 2. Clear and re-render context area
                         resultText.innerHTML = '';
@@ -504,8 +527,20 @@ ${selectionText}` : pageUrl;
                     });
                 });
 
-                historyItem.addEventListener('mouseenter', () => { historyItem.style.backgroundColor = '#e9e9e9'; });
-                historyItem.addEventListener('mouseleave', () => { historyItem.style.backgroundColor = 'transparent'; });
+                historyItem.addEventListener('mouseenter', () => {
+                    if (historyItem.dataset.active !== 'true') {
+                        historyItem.style.backgroundColor = '#e9e9e9';
+                    }
+                });
+                historyItem.addEventListener('mouseleave', () => {
+                    if (historyItem.dataset.active === 'true') {
+                        historyItem.style.backgroundColor = ACTIVE_HISTORY_BG;
+                    } else {
+                        historyItem.style.backgroundColor = 'transparent';
+                    }
+                });
+
+                setHistoryItemActiveState(historyItem, currentConversationId !== null && String(log.id) === String(currentConversationId));
 
                 leftPanel.appendChild(historyItem);
             });
