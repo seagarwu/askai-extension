@@ -59,6 +59,7 @@ ${selectionText}` : pageUrl;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            color: #000;
         }
         .history-item:hover {
             background-color: #f1f1f1;
@@ -75,12 +76,14 @@ ${selectionText}` : pageUrl;
     document.head.appendChild(style);
 
     var popup = document.createElement("div");
-    popup.style.width = (window.innerWidth / 2) + "px"; // Initial width for centering calculation
-    popup.style.height = "450px"; // Initial height for centering calculation
+    const defaultPopupWidth = Math.round(window.innerWidth / 2);
+    const defaultPopupHeight = 450;
+    popup.style.width = defaultPopupWidth + "px"; // Initial width for centering calculation
+    popup.style.height = defaultPopupHeight + "px"; // Initial height for centering calculation
     popup.style.position = "fixed";
     // Calculate center position
-    const centerX = (window.innerWidth - parseInt(popup.style.width)) / 2;
-    const centerY = (window.innerHeight - parseInt(popup.style.height)) / 2;
+    const centerX = (window.innerWidth - parseInt(popup.style.width, 10)) / 2;
+    const centerY = (window.innerHeight - parseInt(popup.style.height, 10)) / 2;
     popup.style.top = centerY + "px";
     popup.style.left = centerX + "px";
     popup.style.backgroundColor = "#fafafa";
@@ -96,12 +99,48 @@ ${selectionText}` : pageUrl;
     popup.style.display = "flex"; // 新增 flex 佈局
     popup.style.flexDirection = "row"; // 設置為水平方向
     popup.style.boxSizing = "border-box"; // 確保 padding 和 border 不影響寬高
+
+    function centerPopup() {
+        const rect = popup.getBoundingClientRect();
+        const left = Math.max(0, (window.innerWidth - rect.width) / 2);
+        const top = Math.max(0, (window.innerHeight - rect.height) / 2);
+        popup.style.left = left + "px";
+        popup.style.top = top + "px";
+    }
+
+    const minPopupWidth = 350;
+    const minPopupHeight = 300;
+    const maxPopupHeight = 600;
+    function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+    }
+
+    function applyPopupSize(width, height) {
+        if (Number.isFinite(width)) {
+            const clampedWidth = clamp(Math.round(width), minPopupWidth, window.innerWidth);
+            popup.style.width = clampedWidth + "px";
+        }
+        if (Number.isFinite(height)) {
+            const clampedHeight = clamp(Math.round(height), minPopupHeight, maxPopupHeight);
+            popup.style.height = clampedHeight + "px";
+        }
+        centerPopup();
+    }
+
+    chrome.storage.local.get(['popupWidth', 'popupHeight'], (result) => {
+        if (Number.isFinite(result.popupWidth) || Number.isFinite(result.popupHeight)) {
+            const width = Number.isFinite(result.popupWidth) ? result.popupWidth : defaultPopupWidth;
+            const height = Number.isFinite(result.popupHeight) ? result.popupHeight : defaultPopupHeight;
+            applyPopupSize(width, height);
+        }
+    });
     
     // Create a scrollable body for context, model select, and chat history
     var scrollableBody = document.createElement("div");
     scrollableBody.style.flexGrow = "1";
     scrollableBody.style.overflow = "auto";
     scrollableBody.style.padding = "10px"; // Apply padding here
+    scrollableBody.style.minHeight = "0"; // Allow flex child to shrink without forcing overflow
 
     // Create a Popup div
     var contextDisplay = document.createElement("div");
@@ -177,6 +216,8 @@ ${selectionText}` : pageUrl;
     inputContainer.style.gap = "5px";
     inputContainer.style.padding = "10px"; // 將原先 popup 的 padding 轉移到這裡
     inputContainer.style.borderTop = "1px solid #eee"; // 可選：增加一個上邊框
+    inputContainer.style.flexShrink = "0"; // Keep Send button visible in tight layouts
+    inputContainer.style.boxSizing = "border-box"; // Prevent padding from overflowing container width
 
     // Create a text input
     var textField = document.createElement("input");
@@ -184,6 +225,7 @@ ${selectionText}` : pageUrl;
     textField.id = "myTextField";
     textField.placeholder = defaultQuestion;
     textField.style.flexGrow = "1";
+    textField.style.minWidth = "0"; // Allow input to shrink without clipping the button
     textField.style.backgroundColor = "#ffffff"; // 固定背景顏色為白色
     textField.style.color = "#000000"; // 固定字體顏色為黑色
     textField.autocomplete = "off";
@@ -420,6 +462,7 @@ ${selectionText}` : pageUrl;
                     input.style.margin = '0';
                     input.style.font = 'inherit';
                     input.style.backgroundColor = '#fff';
+                    input.style.color = '#000';
 
                     historyItem.replaceChild(input, titleSpan);
                     input.focus();
@@ -555,6 +598,7 @@ ${selectionText}` : pageUrl;
     rightPanel.style.display = 'flex';
     rightPanel.style.flexDirection = 'column';
     rightPanel.style.overflow = 'hidden'; // The right panel itself shouldn't scroll
+    rightPanel.style.minHeight = '0'; // Prevent flex overflow from hiding the input bar
 
     // --- Sidebar Toggle Logic ---
     const rightPanelHeader = document.createElement('div');
@@ -847,6 +891,34 @@ ${selectionText}` : pageUrl;
     document.addEventListener('mouseup', () => {
         isDragging = false;
     });
+
+    let resizeSaveTimer = null;
+    let hasObservedInitialSize = false;
+    const savePopupSize = () => {
+        const rect = popup.getBoundingClientRect();
+        const width = Math.round(rect.width);
+        const height = Math.round(rect.height);
+        if (width < minPopupWidth || height < minPopupHeight) {
+            return;
+        }
+        chrome.storage.local.set({
+            popupWidth: width,
+            popupHeight: height
+        });
+    };
+    if (window.ResizeObserver) {
+        const resizeObserver = new ResizeObserver(() => {
+            if (!hasObservedInitialSize) {
+                hasObservedInitialSize = true;
+                return;
+            }
+            if (resizeSaveTimer) {
+                clearTimeout(resizeSaveTimer);
+            }
+            resizeSaveTimer = setTimeout(savePopupSize, 150);
+        });
+        resizeObserver.observe(popup);
+    }
 
     // Create navigation buttons container
     var navButtonsContainer = document.createElement("div");
