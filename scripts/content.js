@@ -16,6 +16,14 @@ document.addEventListener('contextmenu', function(event) {
 });
 
 function createPopup(pageUrl, selectionText, position) {
+    // Inject highlight.js CSS
+    const highlightCssUrl = chrome.runtime.getURL('styles/github-dark.min.css');
+    if (!document.querySelector(`link[href="${highlightCssUrl}"]`)) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = highlightCssUrl;
+        document.head.appendChild(link);
+    }
     // Combine context for AI and for saving, to avoid changing storage structure.
     let contextText = selectionText ? `URL: ${pageUrl}
 
@@ -562,7 +570,12 @@ ${selectionText}` : pageUrl;
                             }
                         });
 
-                        // 4. Update UI elements
+                        // 4. Highlight code blocks
+                        resultText.querySelectorAll('pre code').forEach((block) => {
+                            hljs.highlightElement(block);
+                        });
+
+                        // 5. Update UI elements
                         textField.value = "";
                         textField.placeholder = "Ask a follow-up question...";
                         navButtonsContainer.style.display = "flex";
@@ -839,6 +852,9 @@ ${selectionText}` : pageUrl;
           // 3. Update AI's message with the actual response
           if (window.marked) {
             aiMessageDiv.innerHTML = `<p><b class="chat-label">AI (${selectedModel}):</b></p>` + window.marked.parse(response.result, { breaks: true });
+            aiMessageDiv.querySelectorAll('pre code').forEach((block) => {
+              hljs.highlightElement(block);
+            });
           } else {
             aiMessageDiv.innerHTML = `<p><b class="chat-label">AI (${selectedModel}):</b></p><p>${response.result.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
           }

@@ -53,7 +53,7 @@
     },
     "web_accessible_resources": [
         {
-            "resources": ["images/*.svg"],
+            "resources": ["images/*.svg", "styles/github-dark.min.css"],
             "matches": ["<all_urls>"]
         }
     ]

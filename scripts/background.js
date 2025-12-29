@@ -3,7 +3,7 @@ console.log("[Background] Script started.");
 function injectAskAIScripts(tabId, callback) {
   chrome.scripting.executeScript({
     target: { tabId },
-    files: ['scripts/marked.min.js', 'scripts/content.js']
+    files: ['scripts/marked.min.js', 'scripts/vendor/highlight.min.js', 'scripts/content.js']
   }, () => {
     if (chrome.runtime.lastError) {
       console.error("[Background] Error executing script:", chrome.runtime.lastError.message);
